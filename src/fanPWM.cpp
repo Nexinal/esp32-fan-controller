@@ -11,8 +11,24 @@ bool modeIsOff = false;
 void updateMQTT_Screen_withNewPWMvalue(int aPWMvalue, bool force);
 void updateMQTT_Screen_withNewMode(bool aModeIsOff, bool force);
 
+void relayOn(void)
+{
+  digitalWrite(RELAY_PIN, HIGH);
+}
+
+void relayOff(void)
+{
+  digitalWrite(RELAY_PIN, LOW);
+}
+
+
 // https://randomnerdtutorials.com/esp32-pwm-arduino-ide/
 void initPWMfan(void){
+
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, LOW);
+  Log.printf("  FAN Relay sucessfully initialized.\r\n");
+
   // configure LED PWM functionalitites
   ledcSetup(PWMCHANNEL, PWMFREQ, PWMRESOLUTION);
   // attach the channel to the GPIO to be controlled
@@ -21,6 +37,8 @@ void initPWMfan(void){
   pwmValue = INITIALPWMVALUE;
   updateMQTT_Screen_withNewPWMvalue(pwmValue, true);
   updateMQTT_Screen_withNewMode(false, true);
+
+  relayOn();
 
   Log.printf("  Fan PWM sucessfully initialized.\r\n");
 }
@@ -36,8 +54,16 @@ void updateMQTT_Screen_withNewPWMvalue(int aPWMvalue, bool force) {
     pwmValue = aPWMvalue;
     if (pwmValue < 0) {pwmValue = 0;};
     if (pwmValue > 255) {pwmValue = 255;};
-    updateFanSpeed();
-    #ifdef useMQTT
+
+    if (pwmValue < FANMINRPM) {
+      updateMQTT_Screen_withNewMode(true, true);
+      relayOff();
+    }
+    else {
+      updateFanSpeed();
+    }
+    
+#ifdef useMQTT
     mqtt_publish_stat_fanPWM();
     mqtt_publish_tele();
     #endif
@@ -55,8 +81,10 @@ void updateMQTT_Screen_withNewMode(bool aModeIsOff, bool force) {
   }
   if (modeIsOff) {
     updateMQTT_Screen_withNewPWMvalue(0, true);
+    relayOff();
   } else {
     updateMQTT_Screen_withNewPWMvalue(INITIALPWMVALUE, true);
+    relayOn();
   }
 }
 

@@ -266,6 +266,7 @@ mosquitto_sub -h localhost -t "homeassistant/sensor/esp32_fan_controller/#" -v
 #define MQTTCMNDTARGETTEMP        UNIQUE_DEVICE_NAME "/cmnd/TARGETTEMP"
 #define MQTTSTATTARGETTEMP        UNIQUE_DEVICE_NAME "/stat/TARGETTEMP"
 #define MQTTCMNDACTUALTEMP        UNIQUE_DEVICE_NAME "/cmnd/ACTUALTEMP"
+#define MQTTCMNDRELAY             UNIQUE_DEVICE_NAME "/cmnd/RELAY"
 #define MQTTSTATACTUALTEMP        UNIQUE_DEVICE_NAME "/stat/ACTUALTEMP"
 #define MQTTCMNDFANPWM            UNIQUE_DEVICE_NAME "/cmnd/FANPWM"
 #define MQTTSTATFANPWM            UNIQUE_DEVICE_NAME "/stat/FANPWM"
@@ -274,7 +275,8 @@ mosquitto_sub -h localhost -t "homeassistant/sensor/esp32_fan_controller/#" -v
 // note: it is not guaranteed that fan stops if pwm is set to 0
 #define MQTTCMNDFANMODE           UNIQUE_DEVICE_NAME "/cmnd/MODE"   // can be "off" and "fan_only"
 #define MQTTSTATFANMODE           UNIQUE_DEVICE_NAME "/stat/MODE"
-#define MQTTFANMODEOFFPAYLOAD     "off"
+#define MQTTFANMODEOFFPAYLOAD "off"
+#define MQTTFANMODEONPAYLOAD "on"
 #define MQTTFANMODEFANONLYPAYLOAD "fan_only"
 
 #if defined(useOTAUpdate)

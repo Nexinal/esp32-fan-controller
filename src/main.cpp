@@ -36,11 +36,13 @@ void setup(){
   wifi_setup();
   wifi_enable();
   #endif
+
   #if defined(useOTAUpdate)
   OTA_setup("ESP32fancontroller");
   // Do not start OTA. Save heap space and start it via MQTT only when needed.
   // ArduinoOTA.begin();
   #endif
+  
   #if defined(useTelnetStream)
   TelnetStream.begin();
   #endif

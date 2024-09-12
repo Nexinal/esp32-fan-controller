@@ -1,3 +1,6 @@
+void relayOn(void);
+void relayOff(void);
+
 void initPWMfan(void);
 void updateMQTT_Screen_withNewPWMvalue(int aPWMvalue, bool force);
 void updateMQTT_Screen_withNewMode(bool aModeIsOff, bool force);
