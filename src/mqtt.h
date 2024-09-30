@@ -1,21 +1,51 @@
-#ifdef useMQTT
-void mqtt_setup(void);
-void mqtt_loop(void);
-bool mqtt_publish_tele(void);
-bool mqtt_publish_stat_targetTemp();
-bool mqtt_publish_stat_actualTemp();
-bool mqtt_publish_stat_fanPWM();
-bool mqtt_publish_stat_mode();
-#ifdef useShutdownButton
-bool mqtt_publish_shutdown();
-#endif
-#ifdef useHomeassistantMQTTDiscovery
-/* Sets the start of the timer until HA discovery is sent.
-   It will be waited WAITAFTERHAISONLINEUNTILDISCOVERYWILLBESENT ms before the discovery is sent.
-   0: discovery will not be sent
-   >0: discovery will be sent as soon as "WAITAFTERHAISONLINEUNTILDISCOVERYWILLBESENT" ms are over
-*/
-extern unsigned long timerStartForHAdiscovery;
-bool mqtt_publish_hass_discovery();
-#endif
-#endif
+#pragma once
+#include "config.h"
+
+#ifdef ENABLE_MQTT
+
+#ifndef MQTT_H
+#define MQTT_H
+
+#define MQTT_MODULE_NAME "MQTT"
+#define MQTT_MODULE_VERSION "1.0"
+
+#include "settings.h"
+#include "modules/moduleBase.h"
+
+#include <PubSubClient.h>
+
+
+class MQTTController : public ModuleBase
+{
+    private:
+        bool wifiConnected;
+        PubSubClient mqttClient;
+
+    public:
+        MQTTController(SettingsManager& settingsManager);
+        ~MQTTController();
+
+        void setup() override;
+        void loop() override;
+
+        void getInfoForLog(Logger &log) const override;
+        String getInfoForJson() const override;
+
+        void publish(const String& topic, const String& payload);
+        void subscribe(const String& topic);
+
+    private:
+        void WiFiEvent(WiFiEvent_t event);
+        void onMessage(const String& topic, const String& payload);
+};
+
+
+
+
+
+
+
+
+#endif // MQTT_H
+
+#endif // ENABLE_MQTT

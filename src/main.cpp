@@ -1,117 +1,140 @@
-#include <Arduino.h>
+#define DEFINE_GLOBAL_VARS
 
-#include "config.h"
-#include "log.h"
-#include "wifiCommunication.h"
-#include "mqtt.h"
-#include "sensorBME280.h"
-#include "fanPWM.h"
-#include "fanTacho.h"
-#include "temperatureController.h"
-#include "tft.h"
-#include "tftTouch.h"
+#include "fanController.h"
+#include <vector> // or the appropriate container header
 
-#if defined(useOTAUpdate)
-  // https://github.com/SensorsIot/ESP32-OTA
-  #include "OTA.h"
-  #if !defined(useOTA_RTOS)
-    #include <ArduinoOTA.h>
-  #endif
-#endif
-#if defined(useTelnetStream)
-#include "TelnetStream.h"
-#endif
+void setup()
+{
+    Log.println("");
+    Log.println("Starting up");
+    Log.println("");
 
-unsigned long previousMillis1000Cycle = 0;
-unsigned long interval1000Cycle = 1000;
-unsigned long previousMillis10000Cycle = 0;
-unsigned long interval10000Cycle = 10000;
+    Log.printInformation();
+    Log.println("");
 
-void setup(){
-  Serial.begin(115200);
-  Serial.println("");
-  Log.printf("Setting things up ...\r\n");
+    settingsManager.loadAll();
 
-  #ifdef useWIFI
-  wifi_setup();
-  wifi_enable();
-  #endif
+    // initialise all of the modules
+    for (auto module : modules)
+    {
+        // monitor the time the module takes to setup and log an message if more than WATCHDOG_MAX_SETUP_MILLIS
+        unsigned long setupStart = millis();
+        module->setup();
+        unsigned long setupTime = millis() - setupStart;
+        if (setupTime > WATCHDOG_MAX_SETUP_MILLIS)
+        {
+            Log.printfln("Module %s took %u ms to setup", module->getMeta().name, setupTime);
+        }
+    }
 
-  #if defined(useOTAUpdate)
-  OTA_setup("ESP32fancontroller");
-  // Do not start OTA. Save heap space and start it via MQTT only when needed.
-  // ArduinoOTA.begin();
-  #endif
-  
-  #if defined(useTelnetStream)
-  TelnetStream.begin();
-  #endif
-  #ifdef useTFT
-  initTFT();
-  #endif
-  #ifdef useTouch
-  initTFTtouch();
-  #endif
-  initPWMfan();
-  initTacho();
-  #ifdef useTemperatureSensorBME280
-  initBME280();
-  #endif
-  #ifdef useAutomaticTemperatureControl
-  initTemperatureController();
-  #endif
-  #ifdef useMQTT
-  mqtt_setup();
-  #endif
 
-  Log.printf("Settings done. Have fun.\r\n");
+    // initialise settings repository
+    //settings.load();
+
+    // initialise module repository
+
+    // load all modules
+    // connect to wifi
+    // connect to mqtt
+
+    Log.dumpStats();
 }
 
-void loop(){
-  // functions that shall be called as often as possible
-  // these functions should take care on their own that they don't nee too much time
-  updateTacho();
-  #ifdef useTouch
-  processUserInput();
-  #endif
-  #if defined(useOTAUpdate) && !defined(useOTA_RTOS)
-  // If you do not use FreeRTOS, you have to regulary call the handle method
-  ArduinoOTA.handle();
-  #endif
-  // mqtt_loop() is doing mqtt keepAlive, processes incoming messages and hence triggers callback
-  #ifdef useMQTT
-  mqtt_loop();
-  #endif
 
-  unsigned long currentMillis = millis();
+// Never use blocking code in loop() to avoid problems with other tasks
+void loop() {
+    static unsigned int loopCount = 0;
+    static unsigned long totalLoopTimeMillis = 0;
+    static unsigned long maxLoopMillis = 0;
 
-  // functions that shall be called every 1000 ms
-  if ((currentMillis - previousMillis1000Cycle) >= interval1000Cycle) {
-    previousMillis1000Cycle = currentMillis;
+    unsigned long now = millis();
+    unsigned long thisloopTimeMillis = 0;
 
-    #ifdef useTemperatureSensorBME280
-    updateBME280();
-    #endif
-    #ifdef useAutomaticTemperatureControl
-    setFanPWMbasedOnTemperature();
-    #endif
-    #ifdef useTFT
-    draw_screen();
-    #endif
-    #ifdef useHomeassistantMQTTDiscovery
-    if (((currentMillis - timerStartForHAdiscovery) >= WAITAFTERHAISONLINEUNTILDISCOVERYWILLBESENT) && (timerStartForHAdiscovery != 0)) {
-      mqtt_publish_hass_discovery();
+    for (const auto& module : modules)
+    {
+        //Log.printfln("Module %s loop", module->getMeta().name);
+
+        // monitor the time the module takes to loop and log an message if more than WATCHDOG_MAX_LOOP_MILLIS
+        unsigned long loopStart = millis();
+        module->loop();
+        unsigned long loopTime = millis() - loopStart;
+        if (loopTime > WATCHDOG_MAX_LOOP_MILLIS)
+        {
+            Log.printfln("Module %s took %u ms to loop", module->getMeta().name, loopTime);
+        }
+
+        yield;
     }
-    #endif
-  }
 
-  // functions that shall be called every 10000 ms
-  if ((currentMillis - previousMillis10000Cycle) >= interval10000Cycle) {
-    previousMillis10000Cycle = currentMillis;
 
-    #ifdef useMQTT
-    mqtt_publish_tele();
-    #endif
-    doLog();
-  }
+    // every 500ms, check if settings are dirty and save if they are
+    static unsigned long settingsCheckMillis = 0;
+    if (now - settingsCheckMillis > 500)
+    {
+        if (settingsManager.isDirty()) {
+            Log.println("** Settings are dirty, saving");
+            settingsManager.saveAll();
+        }
+        settingsCheckMillis = millis();
+    }
+
+
+
+    // every 10 seconds, call Log.dumpStats().
+    static unsigned long lastDebugStats = 0;
+    if (now - lastDebugStats > STATS_INTERVAL)
+    {
+        lastDebugStats = millis();
+
+        Log.println("|> DEBUG STATS ---------------------------------------------------");
+        Log.dumpStats();
+        Network.getInfoForLog(Log);
+
+        // avoid division by zero
+        if (loopCount == 0)
+            loopCount = 1;
+
+        int statsSeconds = STATS_INTERVAL / 1000;
+        unsigned int loopsPerSecond = loopCount / statsSeconds;
+        
+        Log.println("|> Loop Information");
+        Log.printfln("|>  - Loop Count : %d", loopCount);
+        Log.printfln("|>  - Loop/second: %u", loopsPerSecond);
+        Log.printfln("|>  - Total Loop Time: %u ms", totalLoopTimeMillis);
+        Log.printfln("|>  - Average Loop Time: %.2f ms", static_cast<float>(totalLoopTimeMillis) / loopCount);
+        Log.printfln("|>  - Maximum Loop Time: %u ms", maxLoopMillis);
+
+        loopCount = 0;
+        maxLoopMillis = 0;
+        totalLoopTimeMillis = 0;
+
+        Log.println("|> ---------------------------------------------------------------");
+    }
+    yield();
+
+
+
+
+
+    // Loop housekeeping and monitoring
+
+    thisloopTimeMillis = millis() - now;
+    if (thisloopTimeMillis > maxLoopMillis) {
+        maxLoopMillis = thisloopTimeMillis;
+    }
+    totalLoopTimeMillis += thisloopTimeMillis;
+    loopCount++;
+
+    if (thisloopTimeMillis > WATCHDOG_SLOW_LOOP_TIME)
+    {
+        Log.println ("**************************************************");
+        Log.println ("*>  Slow Loop");
+        Log.printfln("*>  - Took %u ms", thisloopTimeMillis);
+        Log.printfln("*>  - Avg Time: %u ms", totalLoopTimeMillis / loopCount);
+        Log.printfln("*>  - Loop Count: %d", loopCount);
+        Log.printfln("*>  - Max Loop: %u ms", maxLoopMillis);
+        Log.println ("**************************************************");
+    }
+
+    yield();
 }

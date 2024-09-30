@@ -1,0 +1,16 @@
+{
+    "name": "fancontroller",
+    "version": "0.0.1",
+    "description": "Controller for Internal Fans",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Nexinal/esp32-fan-controller.git"
+    },
+    "author": "Mark Dawson",
+    "license": "LGPL-3.0-or-later",
+    "bugs": {
+        "url": "https://github.com/Nexinal/esp32-fan-controllerissues"
+    },
+    "homepage": "https://github.com/Nexinal/esp32-fan-controller#readme"
+    
+}

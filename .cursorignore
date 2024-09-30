@@ -1,0 +1,8 @@
+src.old
+.gitignore
+.travis.yml
+readme.md
+.vscode
+.pio
+.github
+
