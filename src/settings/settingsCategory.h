@@ -4,6 +4,7 @@
 #include <map>
 #include "SettingBase.h"
 #include "logger.h"
+#include <typeinfo> // Include this for typeid
 
 class SettingsCategory
 {
@@ -18,18 +19,18 @@ public:
     }
 
     template <typename T>
-    T getValue(const std::string &name) const
+    const T &getValue(const std::string &name) const
     {
         auto it = settings.find(name);
         if (it != settings.end()) {
-            if (const Setting<T>* typedSetting = static_cast<const Setting<T>*>(it->second)) {
-                return typedSetting->getValue();
-            } else {
+            if (const auto* typedSetting = static_cast<const Setting<T>*>(it->second)) {
+                    return *typedSetting->getValue();
+            }
+            else {
                 throw std::runtime_error("Type mismatch for setting: " + name);
             }
-        } else {
-            throw std::out_of_range("Setting not found: " + name);
         }
+        throw std::out_of_range("Setting not found: " + name);
     }
 
     // Add this overload for string literals

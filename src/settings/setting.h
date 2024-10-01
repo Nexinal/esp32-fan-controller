@@ -34,7 +34,7 @@ public:
 
 
 
-    T getValue() const { return value; }
+    const T* getValue() const { return &value; }
 
 
 
