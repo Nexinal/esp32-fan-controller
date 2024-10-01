@@ -23,25 +23,37 @@
 // FAN Defaults
 // ----------------------------------------------------------------
 #ifndef DEFAULT_POWER_ON_SPEED
-#define DEFAULT_POWER_ON_SPEED "0"
+#define DEFAULT_POWER_ON_SPEED 20
 #endif
 
 #ifndef DEFAULT_PWM_PIN
   #define DEFAULT_PWM_PIN GPIO_NUM_32
 #endif
 
-#ifndef DEFAULT_PWM_MAX
-  #define DEFAULT_PWM_MAX 4500 // only used for showing at how many percent fan is running
+#ifndef DEFAULT_MAX_RPM
+  #define DEFAULT_MAX_RPM 4500 // only used for showing at how many percent fan is running
 #endif
 
-#ifndef DEFAULT_PWM_MIN
-  #define DEFAULT_PWM_MIN 20   // minimum speed at which the fan can run, switch of if below
+#ifndef DEFAULT_MIN_PERCENT
+  #define DEFAULT_MIN_PERCENT 20 // minimum speed at which the fan can run, switch of if below
 #endif
 
-// fanTacho
-#ifndef DEFAULT_TACH_PIN
-  #define DEFAULT_TACH_PIN GPIO_NUM_34
+#ifndef MIN_START_PERCENT
+  #define MIN_START_PERCENT 30 // minimum speed at which the fan can run, switch of if below
 #endif
+
+#ifndef PWM_FREQ
+  #define PWM_FREQ 25000
+#endif
+
+#ifndef PWM_CHANNEL
+  #define PWM_CHANNEL 0
+#endif
+
+#ifndef PWM_RESOLUTION
+  #define PWM_RESOLUTION 8
+#endif
+
 
 // Relay / Mosfet
 #ifndef DEFAULT_RELAY_PIN
@@ -49,6 +61,29 @@
 #endif
 
 
+
+
+// fanTacho
+#ifndef DEFAULT_TACH_PIN
+  #define DEFAULT_TACH_PIN GPIO_NUM_34
+#endif
+
+#define TACHO_UPDATE_CYCLE 1000       // how often tacho speed shall be determined, in milliseconds
+#define NUMB_INTERRUPS_PER_ROTATION 2 // Number of interrupts ESP32 sees on tacho signal on a single fan rotation. All the fans I've seen trigger two interrups.
+
+
+
+
+// ----------------------------------------------------------------
+// Internal temperature sensor
+// ----------------------------------------------------------------
+#ifndef USE_INTERNAL_TEMPERATURE_SENSOR
+  #define USE_INTERNAL_TEMPERATURE_SENSOR
+#endif  
+
+#ifndef INTERNAL_TEMPERATURE_INTERVAL_MS
+  #define INTERNAL_TEMPERATURE_INTERVAL_MS 5000 // 5 seconds
+#endif
 
 
 

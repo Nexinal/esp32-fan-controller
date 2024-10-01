@@ -8,11 +8,10 @@
 
 #define MQTT_MODULE_NAME "MQTT"
 #define MQTT_MODULE_VERSION "1.0"
-
+#define MAX_CALLBACKS 10
 
 #include "settings.h"
 #include "modules/moduleBase.h"
-
 #include <WiFiClient.h>
 #include <PubSubClient.h>
 
@@ -28,7 +27,15 @@ class MQTTController : public ModuleBase
         String lastMessage = "";
         WiFiClient wifiClient;
         String topic = MQTT_TOPIC;
-        std::map<String, std::function<void(const String&, const String&)>> moduleCallbacks;
+
+        struct CallbackEntry
+        {
+            String moduleName;
+            std::function<void(const String &, const String &)> callback;
+        };
+        
+        static CallbackEntry moduleCallbacks[MAX_CALLBACKS];
+        static int callbackCount;
 
     public:
         MQTTController(SettingsManager& settingsManager);
@@ -58,7 +65,7 @@ class MQTTController : public ModuleBase
         int getStatus() const;
         String getLastMessage() const;
 
-        void registerCallback(const String& moduleName, std::function<void(const String&, const String&)> callback);
+        static void registerCallback(const String& moduleName, std::function<void(const String&, const String&)> callback);
 
     private:
         int establishConnection();
