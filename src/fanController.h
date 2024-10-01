@@ -64,5 +64,7 @@ GLOBAL MQTTController MQTT _INIT(MQTTController(settingsManager));
 
 GLOBAL std::vector<ModuleBase *> modules _INIT_N(({&Network, &MQTT}));
 
+GLOBAL bool restartRequested _INIT(false);
+
 #endif  // FANCONTROLLER_H
 

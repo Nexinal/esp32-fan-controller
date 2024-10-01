@@ -2,6 +2,12 @@
 
 #include "fanController.h"
 #include <vector> // or the appropriate container header
+#include "esp_wifi.h"
+#include "esp_sleep.h"
+
+#ifdef ENABLE_SLEEP_MODE
+void enterSleepMode();
+#endif
 
 void setup()
 {
@@ -28,17 +34,6 @@ void setup()
     }
 
     Network.start();
-
-    // initialise settings repository
-    //settings.load();
-
-    // initialise module repository
-
-    // load all modules
-    // connect to wifi
-    // connect to mqtt
-
-    Log.dumpStats();
 }
 
 
@@ -77,6 +72,7 @@ void loop() {
             settingsManager.saveAll();
         }
         settingsCheckMillis = millis();
+        yield();
     }
 
     // every STATS_INTERVAL milliseconds, dump the stats/diagnostics
@@ -91,16 +87,18 @@ void loop() {
 
         for (const auto &module : modules) {
             module->getInfoForLog(Log);
+            yield();
 
             if (MQTT.getStatus() == MQTT_CONNECTED)
             {
                 String json = module->getInfoForJson();
-                Log.printfln("|>  - %s", json.c_str());
-
                 String topic = "diagnostics/" + String(module->getMeta().name);
                 MQTT.publish(topic, json);
+                yield();
             }
         }
+
+
 
         // avoid division by zero
         if (loopCount == 0)
@@ -121,9 +119,8 @@ void loop() {
         totalLoopTimeMillis = 0;
 
         Log.println("|> ---------------------------------------------------------------");
+        yield();
     }
-    yield();
-
 
 
 
@@ -149,4 +146,78 @@ void loop() {
     }
 
     yield();
+
+
+    // Restart if requested but if settings are dirty
+    // do the restart on the next loop to allow time for them
+    // to be saved.
+    if (restartRequested) {
+        if (settingsManager.isDirty()) {
+            Log.println("Restart requested but settings need saving.");
+        }
+        else {
+            Log.println("Rebooting...");
+            ESP.restart();
+        }
+        yield();
+    }
+
+#ifdef ENABLE_SLEEP_MODE
+    static unsigned long lastActivity = 0;
+    if (thisloopTimeMillis > 2) {
+        Log.printf("|>  - Loop took %u ms", thisloopTimeMillis);
+        lastActivity = millis();
+    }
+
+    if (millis() - lastActivity > IDLE_TIMEOUT_MS)
+    {
+        enterSleepMode();
+    }
+#endif
+
+    yield();
 }
+
+#ifdef ENABLE_SLEEP_MODE    
+void enterSleepMode()
+{
+    Log.println("Preparing to enter light sleep mode");
+
+    // Configure wake-up sources
+    esp_sleep_enable_timer_wakeup(SLEEP_DURATION_uS);
+
+    // Enable wake on WiFi
+    esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
+    esp_sleep_enable_wifi_wakeup();
+
+        // Wake up on interrupt
+    gpio_config_t config = {
+        .pin_bit_mask = BIT64(DEFAULT_TACH_PIN),
+        .mode = GPIO_MODE_INPUT};
+    ESP_ERROR_CHECK(gpio_config(&config));
+
+    gpio_wakeup_enable(DEFAULT_TACH_PIN,  GPIO_INTR_LOW_LEVEL);
+
+    esp_sleep_enable_gpio_wakeup();
+
+    // Enter light sleep mode
+    esp_light_sleep_start();
+
+    // Code continues here after waking up
+    Log.println("Woke up from light sleep");
+
+    // Check wake-up reason
+    esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+    if (wakeup_reason == ESP_SLEEP_WAKEUP_WIFI)
+    {
+        Log.println("Woke up due to WiFi activity");
+    }
+    else if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER)
+    {
+        Log.println("Woke up due to timer");
+    }
+
+    // Disable wake on WiFi after waking up
+    esp_sleep_disable_wifi_wakeup();
+}
+#endif

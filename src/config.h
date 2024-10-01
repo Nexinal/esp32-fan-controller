@@ -22,8 +22,8 @@
 // ----------------------------------------------------------------
 // FAN Defaults
 // ----------------------------------------------------------------
-#ifndef DEFAULT_POWER_ON_STATE
-#define DEFAULT_POWER_ON_STATE "off"
+#ifndef DEFAULT_POWER_ON_SPEED
+#define DEFAULT_POWER_ON_SPEED "0"
 #endif
 
 #ifndef DEFAULT_PWM_PIN
@@ -198,6 +198,17 @@
 
 #ifndef WATCHDOG_MAX_LOOP_MILLIS
 #define WATCHDOG_MAX_LOOP_MILLIS 5
+#endif
+
+// ----------------------------------------------------------------
+// Power management and sleep mode
+// This is currently experimental and shouldn't be used. 
+// ----------------------------------------------------------------
+//#define ENABLE_SLEEP_MODE
+
+#ifdef ENABLE_SLEEP_MODE
+  #define IDLE_TIMEOUT_MS 1000      // 1 second of inactivity before sleeping
+  #define SLEEP_DURATION_uS 1000000 // Sleep for 1 second (in microseconds)
 #endif
 
 #endif /*__CONFIG_H__*/
