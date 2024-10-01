@@ -38,7 +38,6 @@ class NetworkController : public ModuleBase
 
         // connection variables
         short wifiMaxLoops = 0;
-        short wifiLoopCount = 0;
         //short wifiReconnectLoopCount = 0;
         
 
@@ -49,6 +48,7 @@ class NetworkController : public ModuleBase
         void setup() override;
         void loop() override;
         
+        void start();
         NetworkStatus connect();
         void reconnect();
 

@@ -33,10 +33,6 @@ void NetworkController::setup()
     wifiMaxLoops = (WIFI_TIMEOUT * 1000UL) / WIFI_CHECK_DELAY_MS;
 
     //wifiReconnectLoopCount = wifiMaxLoops * 2 / 3;
-
-    if (connect() != NetworkStatus::CONNECTED) {
-        startAcessPoint();
-    }
 }
 
 
@@ -47,6 +43,13 @@ void NetworkController::loop()
     }
 }
 
+
+void NetworkController::start() {
+    if (connect() != NetworkStatus::CONNECTED)
+    {
+        startAcessPoint();
+    }
+}
 
 NetworkStatus NetworkController::connect()
 {
@@ -70,7 +73,7 @@ NetworkStatus NetworkController::connect()
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, settings.getValue<String>("password"));
 
-    wifiLoopCount = 0;
+    int wifiLoopCount = 0;
     while (WiFi.status() != WL_CONNECTED && wifiLoopCount < wifiMaxLoops)
     {
         Log.print(".");
@@ -225,6 +228,8 @@ void NetworkController::getInfoForLog(Logger &log) const
     std::pair<int, String> statusInfo = getFriendlyStatus();
     log.printfln("|>  - Status: %d (%s)", statusInfo.first, statusInfo.second.c_str());
 
+    log.printfln("|>  - Last: %s", lastMessage.c_str());
+
     if (mode == NetworkMode::OFF) {
         log.println("|>  - WiFi is OFF");
     }
@@ -255,12 +260,12 @@ String NetworkController::getInfoForJson() const
     JsonDocument doc = startJsonDoc();
 
     std::pair<int, String> modeInfo = getFriendlyMode();
-    doc["mode"]["id"] = modeInfo.first;
-    doc["mode"]["name"] = modeInfo.second;
+    doc["mode"] = modeInfo.second;
 
     std::pair<int, String> statusInfo = getFriendlyStatus();
-    doc["status"]["id"] = statusInfo.first;
-    doc["status"]["name"] = statusInfo.second;
+    doc["status"] = statusInfo.second;
+
+    doc["lastMessage"] = lastMessage;
 
     if (mode == NetworkMode::OFF)
     {

@@ -15,7 +15,7 @@ void setup()
     settingsManager.loadAll();
 
     // initialise all of the modules
-    for (auto module : modules)
+    for (const auto &module : modules)
     {
         // monitor the time the module takes to setup and log an message if more than WATCHDOG_MAX_SETUP_MILLIS
         unsigned long setupStart = millis();
@@ -27,6 +27,7 @@ void setup()
         }
     }
 
+    Network.start();
 
     // initialise settings repository
     //settings.load();
@@ -50,7 +51,7 @@ void loop() {
     unsigned long now = millis();
     unsigned long thisloopTimeMillis = 0;
 
-    for (const auto& module : modules)
+    for (const auto &module : modules)
     {
         //Log.printfln("Module %s loop", module->getMeta().name);
 
@@ -78,17 +79,28 @@ void loop() {
         settingsCheckMillis = millis();
     }
 
-
-
-    // every 10 seconds, call Log.dumpStats().
-    static unsigned long lastDebugStats = 0;
+    // every STATS_INTERVAL milliseconds, dump the stats/diagnostics
+    // currently 60 seconds
+    static unsigned long lastDebugStats = millis() - (STATS_INTERVAL / 2);
     if (now - lastDebugStats > STATS_INTERVAL)
     {
         lastDebugStats = millis();
 
         Log.println("|> DEBUG STATS ---------------------------------------------------");
         Log.dumpStats();
-        Network.getInfoForLog(Log);
+
+        for (const auto &module : modules) {
+            module->getInfoForLog(Log);
+
+            if (MQTT.getStatus() == MQTT_CONNECTED)
+            {
+                String json = module->getInfoForJson();
+                Log.printfln("|>  - %s", json.c_str());
+
+                String topic = "diagnostics/" + String(module->getMeta().name);
+                MQTT.publish(topic, json);
+            }
+        }
 
         // avoid division by zero
         if (loopCount == 0)

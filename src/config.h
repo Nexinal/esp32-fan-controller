@@ -72,7 +72,7 @@
 #endif
 
 #ifndef STATS_INTERVAL
-  #define STATS_INTERVAL 10000
+  #define STATS_INTERVAL 60000  // 60 seconds
 #endif
 
 
@@ -98,6 +98,7 @@
 #endif
 
 
+
 // ----------------------------------------------------------------
 // WIFI Access Point Defaults
 // ----------------------------------------------------------------
@@ -115,6 +116,7 @@
     #define AP_DEFAULT_PASS "fan_setup$123"
   #endif
 #endif
+
 
 
 
@@ -145,8 +147,24 @@
   #endif
 
   #ifndef MQTT_TOPIC
-    #define MQTT_TOPIC "fancontrol"
+    #define MQTT_TOPIC "airflow"
   #endif
+
+#ifndef MQTT_CONNECTION_TIMEOUT_SECS
+#define MQTT_CONNECTION_TIMEOUT_SECS 10 // seconds
+#endif
+
+#ifndef MQTT_BUFFER_SIZE
+#define MQTT_BUFFER_SIZE 1280
+#endif
+
+#ifndef MQTT_KEEP_ALIVE
+#define MQTT_KEEP_ALIVE 60
+#endif
+
+#ifndef MQTT_SOCKET_TIMEOUT
+#define MQTT_SOCKET_TIMEOUT 10
+#endif
 #endif
 
 
