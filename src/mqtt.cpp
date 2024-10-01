@@ -272,7 +272,7 @@
         doc["bufferSize"] = mqttClientRef.getBufferSize();
         doc["topic"] = topic;
 
-        JsonArray callbacks = doc.createNestedArray("callbacks");
+        JsonArray callbacks = doc["callbacks"].to<JsonArray>();
         for (const auto &callback : moduleCallbacks)
         {
             callbacks.add(callback.first);
