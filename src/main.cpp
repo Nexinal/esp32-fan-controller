@@ -11,6 +11,7 @@ void enterSleepMode();
 
 void setup()
 {
+
     Log.println("");
     Log.println("Starting up");
     Log.println("");
@@ -156,11 +157,32 @@ void loop() {
             Log.println("Restart requested but settings need saving.");
         }
         else {
+
+            #ifdef ENABLE_MQTT
+            MQTT.publish("STATUS", "offline", true);
+            MQTT.disconnect();
+            #endif
+
             Log.println("Rebooting...");
             ESP.restart();
         }
         yield();
     }
+
+
+    if (factoryResetRequested)
+    {
+#ifdef ENABLE_MQTT
+        MQTT.publish("STATUS", "resetting", true);
+        MQTT.disconnect();
+#endif
+
+        Log.println("Factory resetting...");
+
+        // clears the settings and restarts the ESP
+        settingsManager.factoryReset();
+    }
+
 
 #ifdef ENABLE_SLEEP_MODE
     static unsigned long lastActivity = 0;

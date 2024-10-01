@@ -140,6 +140,8 @@ public:
         }
     }
 
+
+    // clear the settings and restart the ESP
     void factoryReset() 
     {
         // Clear the EEPROM
